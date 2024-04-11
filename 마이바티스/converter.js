@@ -1,6 +1,11 @@
 function transformText() {
     String.prototype.capitalizeSilva = function() {
+    	var isFirstWord = true;
         return this.replace(/\w+/g, function(a) {
+            if (isFirstWord) {
+                isFirstWord = false;
+                return a.toLowerCase();
+            }
             return a.charAt(0).toUpperCase() + a.substr(1).toLowerCase();
         });
     };
