@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중복 행 제거</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .textarea-container {
+            width: 48%;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 10px;
+            resize: vertical;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: block;
+            margin: 10px auto;
+        }
+        h2 {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>중복 행 제거</h1>
+    <div class="container">
+        <div class="textarea-container">
+            <h2>입력</h2>
+            <textarea id="inputText" placeholder="여러 줄의 텍스트를 입력하세요"></textarea>
+        </div>
+        <div class="textarea-container">
+            <h2>결과</h2>
+            <textarea id="resultText" readonly></textarea>
+        </div>
+    </div>
+    <button onclick="removeDuplicates()">중복 제거</button>
+
+    <script>
+        function removeDuplicates() {
+            const inputText = document.getElementById('inputText').value;
+            const lines = inputText.split('\n').filter(line => line.trim() !== '');
+            const uniqueLines = [...new Set(lines)];
+            const result = uniqueLines.join('\n');
+            document.getElementById('resultText').value = result;
+
+            const originalCount = lines.length;
+            const uniqueCount = uniqueLines.length;
+            const removedCount = originalCount - uniqueCount;
+
+            alert(`원본 행의 수: ${originalCount}\n제거된 행의 수: ${removedCount}`);
+        }
+    </script>
+</body>
+</html>
