@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메일주소 필터링</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+        }
+        input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        label {
+            margin-right: 20px;
+        }
+        button {
+            width: 100%;
+            height: 40px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        .output {
+            height: 150px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            overflow-y: auto;
+        }
+        .output-count {
+            font-size: 12px;
+            color: #666;
+            margin: 5px;
+            text-align: right;
+        }
+        .copy-button {
+			height: 30px;
+			width : 60px;
+            padding: 5px 10px;
+            background-color: #00AA77;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .copy-button:hover {
+            background-color: #0069d9;
+        }
+        .output-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <textarea id="emailInput" placeholder="이메일 주소를 입력하세요" oninput="showHint()"></textarea>
+    <div>
+        <input type="checkbox" id="allCheck" value="all" onchange="toggleChecks(this)">
+        <label for="allCheck">전체(정규식)</label>
+        <input type="checkbox" id="blankCheck" value="blank" onchange="showHint()">
+        <label for="blankCheck">공백</label>
+        <input type="checkbox" id="atCheck" value="@" onchange="showHint()">
+        <label for="atCheck">@(at)</label>
+		<br>
+        <input type="checkbox" id="gmailCheck" value="gmail" onchange="showHint()">
+        <label for="gmailCheck">Gmail</label>
+    </div>
+    <button onclick="validateEmail()">검증하기</button>
+    <div class="output" placeholder="정상메일" id="output1"></div>
+    <div class="output-footer">
+        <div class="output-count" id="output1-count"></div>
+        <button class="copy-button" onclick="copyToClipboard('output1')">복사</button>
+    </div>
+    <div class="output" placeholder="비정상 메일(필터링)" id="output2"></div>
+    <div class="output-footer">
+        <div class="output-count" id="output2-count"></div>
+        <button class="copy-button" onclick="copyToClipboard('output2')">복사</button>
+    </div>
+</div>
+
+<script>
+    function toggleChecks(allCheck) {
+        const blankCheck = document.getElementById('blankCheck');
+        const atCheck = document.getElementById('atCheck');
+
+        if (allCheck.checked) {
+            blankCheck.disabled = true;
+            atCheck.disabled = true;
+        } else {
+            blankCheck.disabled = false;
+            atCheck.disabled = false;
+        }
+    }
+
+    function showHint() {
+        const emailInput = document.getElementById('emailInput').value;
+        const blankCheck = document.getElementById('blankCheck').checked;
+        const atCheck = document.getElementById('atCheck').checked;
+        const gmailCheck = document.getElementById('gmailCheck').checked;
+        const allCheck = document.getElementById('allCheck').checked;
+
+        // 이메일 형식 검증
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+        let passedEmails = [];
+        let failedEmails = [];
+
+        // 입력된 텍스트를 줄 단위로 분리
+        const emailLines = emailInput.split('\n').map(line => line.trim()).filter(line => line !== '');
+
+        emailLines.forEach(email => {
+            let isValid = true;
+
+            if (blankCheck && email.includes(' ')) {
+                isValid = false;
+            }
+            if (atCheck && (email.split('@').length !== 2)) {
+                isValid = false;
+            }
+            if (gmailCheck && (email.endsWith('@gmail.com'))) {
+                isValid = false;
+            }
+
+            if (isValid) {
+                passedEmails.push(email);
+            } else {
+                failedEmails.push(email);
+            }
+        });
+
+        // 힌트는 현재 구현되지 않았습니다.
+    }
+
+    function validateEmail() {
+        const emailInput = document.getElementById('emailInput').value;
+        const blankCheck = document.getElementById('blankCheck').checked;
+        const atCheck = document.getElementById('atCheck').checked;
+        const gmailCheck = document.getElementById('gmailCheck').checked;
+        const allCheck = document.getElementById('allCheck').checked;
+        const output1 = document.getElementById('output1');
+        const output2 = document.getElementById('output2');
+        const output1Count = document.getElementById('output1-count');
+        const output2Count = document.getElementById('output2-count');
+
+        // 이메일 형식 검증
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+        let passedEmails = [];
+        let failedEmails = [];
+
+        // 입력된 텍스트를 줄 단위로 분리
+        const emailLines = emailInput.split('\n').map(line => line.trim()).filter(line => line !== '');
+
+        emailLines.forEach(email => {
+            let isValid = true;
+
+            if (allCheck) {
+                if (!emailRegex.test(email)) {
+                    isValid = false;
+                }
+            } else {
+                if (blankCheck && email.includes(' ')) {
+                    isValid = false;
+                }
+                if (atCheck && (email.split('@').length !== 2)) {
+                    isValid = false;
+                }
+                if (gmailCheck && (email.endsWith('@gmail.com'))) {
+                    isValid = false;
+                }
+            }
+
+            if (allCheck && gmailCheck) {
+                if (email.endsWith('@gmail.com')) {
+                    isValid = false;
+                }
+            }
+
+            if (isValid) {
+                passedEmails.push(email);
+            } else {
+                failedEmails.push(email);
+            }
+        });
+
+        output1.innerText = passedEmails.join('\n');
+        output1Count.innerText = `${passedEmails.length}/${emailLines.length}개`;
+        output2.innerText = failedEmails.join('\n');
+        output2Count.innerText = `${failedEmails.length}/${emailLines.length}개`;
+    }
+
+    function copyToClipboard(id) {
+        const output = document.getElementById(id);
+        navigator.clipboard.writeText(output.innerText).then(() => {
+            alert('클립보드로 복사되었습니다.');
+        }).catch(() => {
+            alert('클립보드로 복사 실패');
+        });
+    }
+</script>
+</body>
+</html>
