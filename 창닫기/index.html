@@ -8,8 +8,7 @@
             const textToCopy = "임의의 텍스트";
             navigator.clipboard.writeText(textToCopy).then(() => {
                 alert('텍스트가 클립보드에 복사되었습니다.');
-                let myWindow = window.open('nextpage.html', '_blank', 'width=400,height=300');
-                myWindow.close();
+                location.href = "kakaotalk://inappbrowser/close";
             }).catch(err => {
                 alert('클립보드 복사에 실패했습니다: ' + err);
             });
