@@ -14,22 +14,6 @@
             margin: 0;
             background-color: #f0f0f0;
         }
-        .input-row {
-            margin-bottom: 10px;
-            width: 80%;
-            max-width: 300px;
-            display: flex;
-            justify-content: space-between;
-        }
-        label {
-            font-size: 16px;
-            margin-right: 10px;
-        }
-        input[type="date"], input[type="time"] {
-            font-size: 16px;
-            padding: 4px;
-            width: 60%;
-        }
         button {
             width: 80%;
             max-width: 300px;
@@ -47,36 +31,50 @@
             background-color: #0056b3;
         }
     </style>
-    <!-- jQuery CDN -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script>
-        function initializeDateTime() {
-            var now = new Date();
-            var defaultTime;
-            if (now.getHours() >= 20)
-                defaultTime = "09:00";
-            else if (now.getHours() >= 14)
-                defaultTime = "19:30";
-            else
-                defaultTime = "13:00";
+        // 한글 요일 반환 함수
+        function getKoreanDay(date) {
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            return days[date.getDay()];
+        }
 
-            $("#date").val(now.toISOString().slice(0, 10));
-            $("#time").val(defaultTime);
+        // 시간/날짜/요일 조건에 맞게 반환
+        function getDateTime() {
+            const now = new Date();
+            let targetDate = new Date(now);
+            let timeStr = "";
+            let dayStr = "";
+
+            if (now.getHours() >= 20) {
+                // 20시 이후: 다음날 09:00, 다음날 요일
+                targetDate.setDate(targetDate.getDate() + 1);
+                timeStr = "09시 00분";
+            } else if (now.getHours() < 10) {
+                // 10시 이전: 오늘 09:00, 오늘 요일
+                timeStr = "09시 00분";
+            } else if (now.getHours() < 14) {
+                // 14시 이전: 오늘 13:00, 오늘 요일
+                timeStr = "13시 00분";
+            } else {
+                // 20시 이전: 오늘 19:30, 오늘 요일
+                timeStr = "19시 30분";
+            }
+            dayStr = getKoreanDay(targetDate);
+            return { day: dayStr, time: timeStr };
         }
 
         function generateAttendanceList() {
             let attendanceList = "<참석명단>\n";
             for (let i = 1; i <= 10; i++) {
-                attendanceList += i + ". \n";
+                attendanceList += i + ".\n";
             }
             return attendanceList;
         }
 
         function onButton1() {
-            const date = $("#date").val();
-            const time = $("#time").val();
-            const header = `SCV🏸 ☆ (${date}) ${time} 
-코트번호 :  1번
+            const { day, time } = getDateTime();
+            const header = `SCV🏸 ☆ (${day}) ${time}
+코트번호 : 1번
 
 콕 남 3개, 여 2개
 `;
@@ -90,23 +88,22 @@
             });
         }
 
-        $(document).ready(function() {
-            initializeDateTime();
-        });
+        function onButton2() {
+            alert('아직 미구현');
+            location.href = "kakaotalk://inappbrowser/close";
+        }
+        function onButton3() {
+            alert('아직 미구현');
+        }
+        function onButton4() {
+            alert('아직 미구현');
+        }
     </script>
 </head>
 <body>
-    <div class="input-row">
-        <label for="date">날짜:</label>
-        <input type="date" id="date">
-    </div>
-    <div class="input-row">
-        <label for="time">시간:</label>
-        <input type="time" id="time">
-    </div>
-    <button onclick="onButton1()">출석양식</button>
-    <button onclick="alert('버튼 2가 클릭되었습니다!'); location.href='kakaotalk://inappbrowser/close';">버튼 2</button>
-    <button onclick="alert('버튼 3이 클릭되었습니다!');">버튼 3</button>
-    <button onclick="alert('버튼 4가 클릭되었습니다!');">버튼 4</button>
+    <button onclick="onButton1()">출석</button>
+    <button onclick="onButton2()">버튼 2</button>
+    <button onclick="onButton3()">버튼 3</button>
+    <button onclick="onButton4()">버튼 4</button>
 </body>
 </html>
