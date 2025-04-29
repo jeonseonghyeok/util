@@ -5,21 +5,7 @@
     <title>Clipboard Copy and Close</title>
     <script>
         function copyTextAndClose() {
-            const textToCopy = "SCV🏸 ☆ (화) 19시 30분 
-코트번호 :  1번
-
-콕 남 3개, 여 2개
-<참석명단>
-1. 
-2. 
-3. 
-4. 
-5. 
-6. 
-7. 
-8. 
-9. 
-10. ";
+            const textToCopy = "test";
             navigator.clipboard.writeText(textToCopy).then(() => {
                 alert('텍스트가 클립보드에 복사되었습니다.');
                 location.href = "kakaotalk://inappbrowser/close";
