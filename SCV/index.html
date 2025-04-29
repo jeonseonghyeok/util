@@ -32,35 +32,32 @@
         }
     </style>
     <script>
-        // 한글 요일 반환 함수
         function getKoreanDay(date) {
             const days = ['일', '월', '화', '수', '목', '금', '토'];
             return days[date.getDay()];
         }
 
-        // 시간/날짜/요일 조건에 맞게 반환
         function getDateTime() {
             const now = new Date();
             let targetDate = new Date(now);
             let timeStr = "";
-            let dayStr = "";
-
+            
             if (now.getHours() >= 20) {
-                // 20시 이후: 다음날 09:00, 다음날 요일
                 targetDate.setDate(targetDate.getDate() + 1);
                 timeStr = "09시 00분";
             } else if (now.getHours() < 10) {
-                // 10시 이전: 오늘 09:00, 오늘 요일
                 timeStr = "09시 00분";
             } else if (now.getHours() < 14) {
-                // 14시 이전: 오늘 13:00, 오늘 요일
                 timeStr = "13시 00분";
             } else {
-                // 20시 이전: 오늘 19:30, 오늘 요일
                 timeStr = "19시 30분";
             }
-            dayStr = getKoreanDay(targetDate);
-            return { day: dayStr, time: timeStr };
+            
+            return {
+                dayNumber: targetDate.getDate(),
+                day: getKoreanDay(targetDate),
+                time: timeStr
+            };
         }
 
         function generateAttendanceList() {
@@ -71,7 +68,7 @@
             return attendanceList;
         }
 
-        function onButton1() {
+        function copyCheckInForm() {
             const { day, time } = getDateTime();
             const header = `SCV🏸 ☆ (${day}) ${time}
 코트번호 : 1번
@@ -88,10 +85,27 @@
             });
         }
 
-        function onButton2() {
-            alert('아직 미구현');
-            location.href = "kakaotalk://inappbrowser/close";
+        function copyDeadlineStandbyForm() {
+            const { dayNumber, day } = getDateTime();
+            const textToCopy = `🏃‍♂참석 대기‼(${dayNumber}일 ${day}요일)
+모임시간 한시간 전 취소자 미발생시
+1. 면제권 사용
+2. 마감참석 벌금
+3. 불참
+(괄호안에 번호 기입)
+
+1. 
+2. 
+3. 
+`;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('텍스트가 클립보드에 복사되었습니다.');
+                location.href = "kakaotalk://inappbrowser/close";
+            }).catch(err => {
+                alert('클립보드 복사에 실패했습니다: ' + err);
+            });
         }
+
         function onButton3() {
             alert('아직 미구현');
         }
@@ -101,8 +115,8 @@
     </script>
 </head>
 <body>
-    <button onclick="onButton1()">출석</button>
-    <button onclick="onButton2()">버튼 2</button>
+    <button onclick="copyCheckInForm()">출석</button>
+    <button onclick="copyDeadlineStandbyForm()">마감일정대기</button>
     <button onclick="onButton3()">버튼 3</button>
     <button onclick="onButton4()">버튼 4</button>
 </body>
