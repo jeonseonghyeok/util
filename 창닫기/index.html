@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Clipboard Copy and Close</title>
+    <script>
+        function copyTextAndClose() {
+            const textToCopy = "임의의 텍스트";
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('텍스트가 클립보드에 복사되었습니다.');
+                window.close();
+            }).catch(err => {
+                alert('클립보드 복사에 실패했습니다: ' + err);
+            });
+        }
+    </script>
+</head>
+<body>
+    <button onclick="copyTextAndClose()">클립보드에 복사하고 창 닫기</button>
+</body>
+</html>
