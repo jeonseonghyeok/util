@@ -31,11 +31,46 @@
             background-color: #0056b3;
         }
     </style>
+    <script>
+        function onButton1() {
+            const textToCopy = "SCV🏸 ☆ (화) 19시 30분 
+코트번호 :  1번
+
+콕 남 3개, 여 2개
+<참석명단>
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+8. 
+9. 
+10. ";
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('텍스트가 클립보드에 복사되었습니다.');
+                location.href = "kakaotalk://inappbrowser/close";
+            }).catch(err => {
+                alert('클립보드 복사에 실패했습니다: ' + err);
+            });
+        }
+        function onButton2() {
+            alert('버튼 2가 클릭되었습니다!');
+            location.href = "kakaotalk://inappbrowser/close";
+        }
+        function onButton3() {
+            alert('버튼 3이 클릭되었습니다!');
+        }
+        function onButton4() {
+            alert('버튼 4가 클릭되었습니다!');
+        }
+    </script>
 </head>
 <body>
-    <button>버튼 1</button>
-    <button>버튼 2</button>
-    <button>버튼 3</button>
-    <button>버튼 4</button>
+    <button onclick="onButton1()">버튼 1</button>
+    <button onclick="onButton2()">버튼 2</button>
+    <button onclick="onButton3()">버튼 3</button>
+    <button onclick="onButton4()">버튼 4</button>
 </body>
 </html>
