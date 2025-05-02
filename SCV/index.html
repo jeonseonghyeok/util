@@ -1,125 +1,145 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCV클럽용 양식</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
-        button {
-            width: 80%;
-            max-width: 300px;
-            padding: 15px 0;
-            margin: 10px 0;
-            font-size: 18px;
-            border: none;
-            border-radius: 8px;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
-    <script>
-        function getKoreanDay(date) {
-            const days = ['일', '월', '화', '수', '목', '금', '토'];
-            return days[date.getDay()];
-        }
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SCV클럽용 양식</title>
+	<style>
+		body {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			height: 100vh;
+			margin: 0;
+			background-color: #f0f0f0;
+		}
+		button {
+			width: 80%;
+			max-width: 300px;
+			padding: 15px 0;
+			margin: 10px 0;
+			font-size: 18px;
+			border: none;
+			border-radius: 8px;
+			background-color: #007bff;
+			color: white;
+			cursor: pointer;
+			transition: background-color 0.3s ease;
+		}
+		button:hover {
+			background-color: #0056b3;
+		}
+	</style>
+	<script>
+		function getKoreanDay(date) {
+			const days = ['일', '월', '화', '수', '목', '금', '토'];
+			return days[date.getDay()];
+		}
 
-        function getDateTime() {
-            const now = new Date();
-            let targetDate = new Date(now);
-            let timeStr = "";
-            
-            if (now.getHours() >= 20) {
-                targetDate.setDate(targetDate.getDate() + 1);
-                timeStr = "09시 00분";
-            } else if (now.getHours() < 9) {
-                timeStr = "09시 00분";
-            } else if (now.getHours() < 10) {
-                timeStr = "10시 00분";
-            } else if (now.getHours() < 14) {
-                timeStr = "13시 00분";
-            } else {
-                timeStr = "19시 30분";
-            }
-            
-            return {
-                dayNumber: targetDate.getDate(),
-                day: getKoreanDay(targetDate),
-                time: timeStr
-            };
-        }
+		function getDateTime() {
+			const now = new Date();
+			let targetDate = new Date(now);
+			let timeStr = "";
 
-        function generateAttendanceList() {
-            let attendanceList = "<참석명단>\n";
-            for (let i = 1; i <= 16; i++) {
-                attendanceList += i + ".\n";
-            }
-            return attendanceList;
-        }
+		   if (now.getHours() < 9) {
+				timeStr = "09시 00분";
+			} else if (now.getHours() < 10) {
+				timeStr = "10시 00분";
+			} else if (now.getHours() < 13) {
+				timeStr = "13시 00분";
+			} else if (now.getHours() < 20) {
+				timeStr = "19시 30분";
+			} else {
+				targetDate.setDate(targetDate.getDate() + 1);
+				timeStr = "09시 00분";
+			}
 
-        function copyCheckInForm() {
-            const { day, time } = getDateTime();
-            const header = `SCV🏸 ☆ (${day}) ${time}
+			return {
+				dayNumber: targetDate.getDate(),
+				day: getKoreanDay(targetDate),
+				time: timeStr
+			};
+		}
+
+		function generateAttendanceList() {
+			let attendanceList = "<참석명단>\n";
+			for (let i = 1; i <= 16; i++) {
+				attendanceList += i + ".\n";
+			}
+			return attendanceList;
+		}
+
+		function copyCheckInForm() {
+			const { day, time } = getDateTime();
+			const header = `SCV🏸 ☆ (${day}) ${time}
 코트번호 : 1번
 
 콕 남 3개, 여 2개
 `;
-            const attendance = generateAttendanceList();
-            const textToCopy = header + attendance;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                alert('텍스트가 클립보드에 복사되었습니다.');
-                location.href = "kakaotalk://inappbrowser/close";
-            }).catch(err => {
-                alert('클립보드 복사에 실패했습니다: ' + err);
-            });
-        }
+			const attendance = generateAttendanceList();
+			let textToCopy = header + attendance;
+			textToCopy = textToCopy.trimEnd();
+			navigator.clipboard.writeText(textToCopy).then(() => {
+				alert('텍스트가 클립보드에 복사되었습니다.');
+				location.href = "kakaotalk://inappbrowser/close";
+			}).catch(err => {
+				alert('클립보드 복사에 실패했습니다: ' + err);
+			});
+		}
 
-        function copyDeadlineStandbyForm() {
-            const { dayNumber, day } = getDateTime();
-            const textToCopy = `🏃‍♂참석 대기‼(${dayNumber}일 ${day}요일)
+		function copyDeadlineStandbyForm() {
+			const { dayNumber, day } = getDateTime();
+			let textToCopy = `🏃‍♂참석 대기‼(${dayNumber}일 ${day}요일)
 모임시간 한시간 전 취소자 미발생시
 1. 면제권 사용
 2. 마감참석 벌금
 3. 불참
 (괄호안에 번호 기입)
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 `;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                alert('텍스트가 클립보드에 복사되었습니다.');
-                location.href = "kakaotalk://inappbrowser/close";
-            }).catch(err => {
-                alert('클립보드 복사에 실패했습니다: ' + err);
-            });
-        }
+			textToCopy = textToCopy.trimEnd();
+			navigator.clipboard.writeText(textToCopy).then(() => {
+				alert('텍스트가 클립보드에 복사되었습니다.');
+				location.href = "kakaotalk://inappbrowser/close";
+			}).catch(err => {
+				alert('클립보드 복사에 실패했습니다: ' + err);
+			});
+		}
 
-        function onButton3() {
-            alert('아직 미구현');
-        }
-        function onButton4() {
-            alert('아직 미구현');
-        }
-    </script>
+		function onButton3() {
+			const { dayNumber, day } = getDateTime();
+			let textToCopy = `🏸셔틀콕
+닉텐블랙(2.4만원) - 이현석
+▶[카카오송금]
+강산연301(2.4만원) - 전성혁
+▶[국민 546501-04-108249]
+▶[하루 전 협의필요]
+
+🏸거트
+미소스포츠(1.5만원) - 성영돈
+▶[sc제일 408-20-291454]
+`;
+			textToCopy = textToCopy.trimEnd();
+			navigator.clipboard.writeText(textToCopy).then(() => {
+				alert('텍스트가 클립보드에 복사되었습니다.');
+				location.href = "kakaotalk://inappbrowser/close";
+			}).catch(err => {
+				alert('클립보드 복사에 실패했습니다: ' + err);
+			});
+		}
+		function onButton4() {
+			alert('아직 미구현');
+		}
+	</script>
 </head>
 <body>
-    <button onclick="copyCheckInForm()">출석</button>
-    <button onclick="copyDeadlineStandbyForm()">마감일정대기</button>
-    <button onclick="onButton3()">버튼 3</button>
-    <button onclick="onButton4()">버튼 4</button>
+	<button onclick="copyCheckInForm()">출석</button>
+	<button onclick="copyDeadlineStandbyForm()">마감일정대기</button>
+	<button onclick="onButton3()">거트 및 셔틀콕</button>
+	<button onclick="onButton4()">버튼 4</button>
 </body>
 </html>
