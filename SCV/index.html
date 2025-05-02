@@ -45,8 +45,10 @@
             if (now.getHours() >= 20) {
                 targetDate.setDate(targetDate.getDate() + 1);
                 timeStr = "09시 00분";
-            } else if (now.getHours() < 10) {
+            } else if (now.getHours() < 9) {
                 timeStr = "09시 00분";
+            } else if (now.getHours() < 10) {
+                timeStr = "10시 00분";
             } else if (now.getHours() < 14) {
                 timeStr = "13시 00분";
             } else {
