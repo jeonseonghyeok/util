@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이미지에서 배경을 제거하세요</title>
+  <style>
+    body {
+      background: #fafbfc;
+      font-family: 'Noto Sans KR', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px 24px;
+    }
+    h1 {
+      font-size: 32px;
+      text-align: center;
+      margin-bottom: 28px;
+      font-weight: 700;
+    }
+    .info-box {
+      background: #f6f8fa;
+      border: 1px solid #e3e7ed;
+      border-radius: 8px;
+      padding: 20px 18px;
+      margin-bottom: 32px;
+      font-size: 16px;
+      color: #222;
+    }
+    .info-box b {
+      font-weight: 700;
+    }
+    .info-list {
+      margin: 12px 0 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .info-list li {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      font-size: 15px;
+    }
+    .info-list li .icon {
+      margin-right: 8px;
+      font-size: 18px;
+      margin-top: 2px;
+    }
+    .upload-area {
+      border: 2px dashed #cfd8dc;
+      background: #f8fafc;
+      border-radius: 10px;
+      text-align: center;
+      padding: 36px 0;
+      color: #7b8a99;
+      font-size: 17px;
+      margin-bottom: 22px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .upload-area:hover {
+      border-color: #0a58ca;
+    }
+    .action-btn {
+      display: block;
+      width: 180px;
+      margin: 0 auto 32px auto;
+      background: #2979ff;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 600;
+      border: none;
+      border-radius: 7px;
+      padding: 14px 0;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(41,121,255,0.08);
+      transition: background 0.2s;
+    }
+    .action-btn:hover {
+      background: #1565c0;
+    }
+    .preview-section {
+      background: #f6f8fa;
+      border-radius: 8px;
+      padding: 22px 14px;
+      margin-bottom: 18px;
+      min-height: 70px;
+      color: #7b8a99;
+      font-size: 16px;
+    }
+    @media (max-width: 700px) {
+      .container { padding: 18px 4vw; }
+      h1 { font-size: 20px; }
+      .action-btn { width: 100%; }
+    }
+  </style>
+<script defer src="bundle.js"></script></head>
+<body>
+  <div class="container">
+    <h1>이미지에서 배경을 제거하세요</h1>
+    <div class="info-box">
+      <b>본 기능은 누구에게나 무료로 제공됩니다</b>
+      <ul class="info-list">
+        <li><span class="icon">✔️</span>사용자의 접근성과 편의를 높이기 위해 회원가입이나 결제 과정 없이 바로 이용할 수 있도록 설계되었습니다.</li>
+        <li><span class="icon">🗑️</span>업로드한 이미지는 저장되지 않으며, 처리 후 즉시 폐기됩니다.</li>
+        <li><span class="icon">✅</span>본 도구는 상업적, 비상업적 용도 모두에서 자유롭게 사용할 수 있습니다.</li>
+        <li><span class="icon">💬</span>기술적인 이점보다는 실질적인 도움이 필요한 분들을 위해 제작되었으며, 널리 활용되기를 바랍니다.</li>
+      </ul>
+    </div>
+    <div class="upload-area">클릭하거나 드래그하여 파일 선택</div>
+    <button class="action-btn">배경 제거하기</button>
+  <div class="image-area">
+	<div class="image-area">
+	  <div class="image-box">
+		<span class="label">원본 이미지</span>
+		<img id="preview" alt="원본 이미지" style="width:100%;"
+		  src="data:image/svg+xml;utf8,<svg width='320' height='180' xmlns='http://www.w3.org/2000/svg'><rect width='320' height='180' fill='%23e3e7ed'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%237b8a99' font-size='18'>이미지 없음</text></svg>">
+	  </div>
+	  <div class="image-box">
+		<span class="label">결과 이미지</span>
+		<img id="result" alt="결과 이미지" style="width:100%;"
+		  src="data:image/svg+xml;utf8,<svg width='320' height='180' xmlns='http://www.w3.org/2000/svg'><rect width='320' height='180' fill='%23e3e7ed'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%237b8a99' font-size='18'>이미지 없음</text></svg>">
+	  </div>
+	</div>
+  </div>
+  <input type="file" id="fileInput" style="display:none;" multiple>
+</body>
+</html>
