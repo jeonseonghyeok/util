@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -16,7 +16,7 @@
             justify-content: space-between;
         }
         .textarea-container {
-            width: 48%;
+            width: 32%;
         }
         textarea {
             width: 100%;
@@ -39,15 +39,19 @@
     </style>
 </head>
 <body>
-    <h1>중복 행 제거</h1>
+    <h1>중복 행 제거 + 중복 확인</h1>
     <div class="container">
         <div class="textarea-container">
             <h2>입력</h2>
             <textarea id="inputText" placeholder="여러 줄의 텍스트를 입력하세요"></textarea>
         </div>
         <div class="textarea-container">
-            <h2>결과</h2>
+            <h2>결과 (중복 제거됨)</h2>
             <textarea id="resultText" readonly></textarea>
+        </div>
+        <div class="textarea-container">
+            <h2>중복된 행</h2>
+            <textarea id="duplicateText" readonly></textarea>
         </div>
     </div>
     <button onclick="removeDuplicates()">중복 제거</button>
@@ -56,15 +60,28 @@
         function removeDuplicates() {
             const inputText = document.getElementById('inputText').value;
             const lines = inputText.split('\n').filter(line => line.trim() !== '');
-            const uniqueLines = [...new Set(lines)];
-            const result = uniqueLines.join('\n');
-            document.getElementById('resultText').value = result;
+
+            // 등장 횟수 카운트
+            const countMap = {};
+            lines.forEach(line => {
+                countMap[line] = (countMap[line] || 0) + 1;
+            });
+
+            // 고유 행
+            const uniqueLines = Object.keys(countMap);
+
+            // 중복된 행 (2번 이상 나온 것만)
+            const duplicateLines = Object.keys(countMap).filter(line => countMap[line] > 1);
+
+            // 결과 반영
+            document.getElementById('resultText').value = uniqueLines.join('\n');
+            document.getElementById('duplicateText').value = duplicateLines.join('\n');
 
             const originalCount = lines.length;
             const uniqueCount = uniqueLines.length;
             const removedCount = originalCount - uniqueCount;
 
-            alert(`원본 행의 수: ${originalCount}\n제거된 행의 수: ${removedCount}`);
+            alert(`원본 행의 수: ${originalCount}\n중복 제거 후 행의 수: ${uniqueCount}\n제거된 행의 수: ${removedCount}`);
         }
     </script>
 </body>
