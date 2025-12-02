@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Query Generator</title>
+    <style>
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+    <!-- JSZip CDN 추가 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <h2>SQL Query Generator</h2>
+    <textarea id="inputData" placeholder="예시) 
+씨엠에스랩	2068632439
+디지팍스	1288694964"></textarea>
+    <button onclick="generateSql()">SQL 생성 후 ZIP 다운로드</button>
+    <script>
+        function generateSql() {
+            const inputData = document.getElementById('inputData').value.trim();
+            const lines = inputData.split('\n');
+            const sqlValues = [];
+
+            lines.forEach(line => {
+                const [ENTRPS_NM, BSNM_NO] = line.split('\t');
+                if (ENTRPS_NM && BSNM_NO) {
+                    const entrpsNm = ENTRPS_NM.replace(/'/g, "''");
+                    sqlValues.push(`('${entrpsNm}',${BSNM_NO})`);
+                }
+            });
+
+            if (sqlValues.length > 0) {
+                const chunkSize = 3000; // 3,000개씩 나눠서 처리
+                const sqlQueries = [];
+
+                for (let i = 0; i < sqlValues.length; i += chunkSize) {
+                    const chunk = sqlValues.slice(i, i + chunkSize);
+                    const sqlQuery = `INSERT IGNORE INTO tb_exclnc_entrprs (ENTRPS_NM,BSNM_NO)\nVALUES ${chunk.join(',')};`;
+                    sqlQueries.push(sqlQuery);
+                }
+
+                // ZIP 파일 생성
+                const zip = new JSZip();
+                sqlQueries.forEach((query, index) => {
+                    zip.file(`exclnc_entrprs_insert_query_${index + 1}.sql`, query);
+                });
+
+                zip.generateAsync({type:"blob"})
+                    .then(function(content) {
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(content);
+                        link.download = 'exclnc_entrprs_sql_queries.zip';
+                        link.click();
+                    });
+            } else {
+                alert('입력된 데이터가 없습니다.');
+            }
+        }
+    </script>
+</body>
+</html>
