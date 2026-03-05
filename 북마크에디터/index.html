@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>북마크 에디터</title>
+    <style>
+        :root { --accent: #4a90e2; --bg: #f8f9fa; --border: #e9ecef; }
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background: var(--bg); padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        
+        #drop-zone {
+            border: 2px dashed #cbd5e0; border-radius: 15px; padding: 40px;
+            text-align: center; color: #718096; transition: 0.3s; background: #fff;
+            cursor: pointer; margin-bottom: 20px;
+        }
+        #drop-zone.dragover { background: #edf2f7; border-color: var(--accent); color: var(--accent); }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .btn-export { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        
+        #tree-root { border: 1px solid var(--border); border-radius: 12px; padding: 15px; max-height: 650px; overflow-y: auto; background: white; }
+
+        ul { list-style: none; padding-left: 28px; margin: 5px 0; }
+        .node-row { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 8px; }
+        .node-row:hover { background: #f1f5f9; }
+
+        .toggle-icon { cursor: pointer; width: 20px; text-align: center; user-select: none; transition: 0.2s; }
+        /* 접힌 상태일 때 하위 목록 숨김 */
+        .node-row.collapsed + ul { display: none; }
+        /* 접힌 상태일 때 화살표 회전 */
+        .rotate { transform: rotate(-90deg); display: inline-block; }
+
+        .folder-name { font-weight: 600; cursor: pointer; color: #1e293b; }
+        .link-name { text-decoration: none; color: #475569; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+        .virtual-root-row { background: #f0f7ff !important; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 style="margin:0;">🔖 북마크 에디터</h2>
+        <button class="btn-export" onclick="exportBookmarks()">북마크 파일 저장</button>
+    </div>
+
+    <div id="drop-zone">
+        북마크 HTML 파일을 드래그 앤 드롭 하거나 클릭하세요
+        <input type="file" id="file-input" accept=".html" hidden>
+    </div>
+
+    <div id="tree-root"></div>
+</div>
+
+<script>
+    let bookmarkTree = null;
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    dropZone.onclick = () => fileInput.click();
+    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+    dropZone.ondrop = (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        handleFile(e.dataTransfer.files[0]);
+    };
+    fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+    function handleFile(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(e.target.result, "text/html");
+            const rootDl = doc.querySelector("dl");
+            if(rootDl) {
+                bookmarkTree = [{
+                    type: 'folder',
+                    name: '',
+                    isVirtual: true,
+                    children: parseDL(rootDl)
+                }];
+                renderTree();
+                dropZone.style.display = 'none';
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function parseDL(dlElement) {
+        const items = [];
+        const children = Array.from(dlElement.children);
+        children.forEach(child => {
+            if (child.tagName === 'DT') {
+                const h3 = child.querySelector('h3');
+                const a = child.querySelector('a');
+                if (h3) {
+                    const nextDl = child.querySelector('dl');
+                    items.push({
+                        type: 'folder',
+                        name: h3.textContent,
+                        addDate: h3.getAttribute('add_date') || '',
+                        children: nextDl ? parseDL(nextDl) : []
+                    });
+                } else if (a) {
+                    items.push({
+                        type: 'link',
+                        name: a.textContent,
+                        url: a.getAttribute('href'),
+                        addDate: a.getAttribute('add_date') || ''
+                    });
+                }
+            }
+        });
+        return items;
+    }
+
+    function renderTree() {
+        const root = document.getElementById('tree-root');
+        root.innerHTML = "";
+        const ul = document.createElement('ul');
+        ul.style.paddingLeft = "0";
+        buildHtmlTree(bookmarkTree, ul, null);
+        root.appendChild(ul);
+    }
+
+    function buildHtmlTree(nodes, parentEl, parentNode) {
+        nodes.forEach((node) => {
+            node.parent = parentNode;
+            const li = document.createElement('li');
+            const row = document.createElement('div');
+            
+            // 핵심 수정: 초기 로드시 폴더는 축소 상태(collapsed, rotate)로 설정
+            row.className = 'node-row' + (node.isVirtual ? ' virtual-root-row' : '');
+            if (node.type === 'folder' && !node.isVirtual) {
+                row.classList.add('collapsed');
+            }
+            
+            const toggle = document.createElement('span');
+            toggle.className = 'toggle-icon';
+            if (node.type === 'folder') {
+                toggle.innerHTML = '▼';
+                if (!node.isVirtual) toggle.classList.add('rotate'); // 가상 루트 제외 축소
+                
+                toggle.onclick = () => {
+                    toggle.classList.toggle('rotate');
+                    row.classList.toggle('collapsed');
+                };
+            }
+
+            const check = document.createElement('input');
+            check.type = 'checkbox';
+            check.checked = true;
+            node.domCheck = check;
+
+            check.onchange = (e) => {
+                const isChecked = e.target.checked;
+                if(node.type === 'folder') {
+                    li.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = isChecked);
+                }
+                if(isChecked) {
+                    let p = node.parent;
+                    while(p) {
+                        p.domCheck.checked = true;
+                        p = p.parent;
+                    }
+                }
+            };
+
+            const name = document.createElement('span');
+            name.className = node.type === 'folder' ? 'folder-name' : 'link-name';
+            name.textContent = (node.type === 'folder' ? '📁 ' : '📄 ') + node.name;
+            if(node.type === 'folder') name.onclick = () => toggle.click();
+
+            row.append(toggle, check, name);
+            li.appendChild(row);
+
+            if(node.type === 'folder' && node.children) {
+                const childUl = document.createElement('ul');
+                buildHtmlTree(node.children, childUl, node);
+                li.appendChild(childUl);
+            }
+            parentEl.appendChild(li);
+        });
+    }
+
+    function generateHtml(nodes) {
+        let html = "";
+        nodes.forEach(node => {
+            const hasCheckedChild = node.type === 'folder' && hasAnyCheckedChild(node);
+            if (!node.domCheck.checked && !hasCheckedChild) return;
+
+            if (node.type === 'link') {
+                html += `    <DT><A HREF="${node.url}" ADD_DATE="${node.addDate}">${node.name}</A>\n`;
+            } else if (node.type === 'folder') {
+                const inner = generateHtml(node.children);
+                if (node.isVirtual) {
+                    html += inner;
+                } else {
+                    html += `    <DT><H3 ADD_DATE="${node.addDate}">${node.name}</H3>\n`;
+                    html += `    <DL><p>\n${inner}    </DL><p>\n`;
+                }
+            }
+        });
+        return html;
+    }
+
+    function hasAnyCheckedChild(folderNode) {
+        return folderNode.children.some(child => 
+            child.domCheck.checked || (child.type === 'folder' && hasAnyCheckedChild(child))
+        );
+    }
+
+    function exportBookmarks() {
+        if(!bookmarkTree) return;
+        const header = `<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Bookmarks</TITLE>\n<H1>Bookmarks</H1>\n<DL><p>\n`;
+        const content = generateHtml(bookmarkTree);
+        const footer = `</DL><p>`;
+        const blob = new Blob([header + content + footer], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = "refined_bookmarks.html";
+        a.click();
+    }
+</script>
+</body>
+</html>
