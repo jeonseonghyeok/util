@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>프로 불참러 이현재를 위한 SCV Club 출석 확인</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; touch-action: manipulation; }
+        
+        /* 캘린더 컨테이너 모바일 최적화 */
+        #calendar { 
+            max-width: 1000px; 
+            margin: 10px auto; 
+            background: white; 
+            padding: 15px; 
+            border-radius: 1rem; 
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); 
+            min-height: 500px;
+        }
+
+        /* 모바일에서 이벤트 텍스트 크기 조정 */
+        @media (max-width: 640px) {
+            .fc-header-toolbar { flex-direction: column; gap: 10px; }
+            .fc-toolbar-title { font-size: 1.2rem !important; }
+            .fc-event-title { font-size: 0.75rem !important; }
+            #calendar { padding: 5px; border-radius: 0; margin: 0; }
+        }
+
+        .fc-event { cursor: pointer; border: none !important; border-radius: 4px !important; transition: opacity 0.2s; }
+        .fc-event:active { opacity: 0.7; }
+        .fc-day-sun a { color: #ef4444 !important; }
+        .fc-day-sat a { color: #3b82f6 !important; }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <div class="p-4 sm:p-8">
+        <div class="text-center mb-4">
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-800">SCV CLUB</h1>
+            <div id="loadingIndicator" class="text-xs text-blue-500 font-bold mt-1 invisible">데이터 동기화 중...</div>
+        </div>
+
+        <div id="calendar"></div>
+    </div>
+
+    <div id="attendanceModal" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="p-5 border-b bg-slate-50 flex justify-between items-center">
+                <div>
+                    <h3 id="modalTitle" class="text-lg font-bold text-slate-800">참석자 명단</h3>
+                    <p id="modalSubTitle" class="text-xs text-slate-500 mt-0.5"></p>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-2 text-2xl">&times;</button>
+            </div>
+            <div class="p-5 max-h-[50vh] overflow-y-auto">
+                <div id="memberList" class="grid grid-cols-2 gap-2"></div>
+            </div>
+            <div class="p-4 border-t text-center">
+                <button onclick="closeModal()" class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let calendar;
+        const loader = document.getElementById('loadingIndicator');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ko',
+                // 모바일에서 높이 자동 조절
+                height: 'auto',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth'
+                },
+                // 날짜가 바뀔 때마다(달 변경 등) 호출됨
+                datesSet: function(info) {
+                    fetchAttendanceData(info.startStr.split('T')[0], info.endStr.split('T')[0]);
+                },
+                eventClick: function(info) {
+                    openModal(info.event);
+                }
+            });
+
+            calendar.render();
+        });
+
+        async function fetchAttendanceData(startDate, endDate) {
+            loader.classList.remove('invisible');
+            
+            // API 경로 형식: /api/attendance?startDateTime=YYYY-MM-DD 00:00:00&endDateTime=YYYY-MM-DD 23:59:59
+            const url = `https://scvclub.ddns.net/api/attendance?startDateTime=${startDate} 00:00:00&endDateTime=${endDate} 23:59:59`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Network error');
+                
+                const data = await response.json();
+                
+                // 기존 이벤트 삭제 후 새 데이터 추가
+                calendar.removeAllEvents();
+
+                const events = data.scheduleInfoList.map(schedule => {
+                    const dateObj = new Date(schedule.scheduleTime);
+                    const timeLabel = dateObj.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                    
+                    return {
+                        title: `${timeLabel} (${schedule.memberList.length}명)`,
+                        start: schedule.scheduleTime,
+                        backgroundColor: schedule.scheduleTime.includes('T19') ? '#6366f1' : '#10b981',
+                        extendedProps: {
+                            members: schedule.memberList,
+                            fullTime: timeLabel
+                        }
+                    };
+                });
+
+                calendar.addEventSource(events);
+            } catch (error) {
+                console.error('API Fetch 실패:', error);
+            } finally {
+                loader.classList.add('invisible');
+            }
+        }
+
+        function openModal(event) {
+            const modal = document.getElementById('attendanceModal');
+            const listContainer = document.getElementById('memberList');
+            const subTitle = document.getElementById('modalSubTitle');
+            
+            const members = event.extendedProps.members;
+            const dateStr = event.start.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+            
+            subTitle.innerText = `${dateStr} / ${event.extendedProps.fullTime} 일정`;
+            listContainer.innerHTML = '';
+
+            members.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'bg-slate-100 p-2.5 rounded-lg text-center text-sm font-semibold text-slate-700 border border-slate-200';
+                div.innerText = m.name;
+                listContainer.appendChild(div);
+            });
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // 스크롤 방지
+        }
+
+        function closeModal() {
+            document.getElementById('attendanceModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        window.onclick = (e) => { if(e.target.id === 'attendanceModal') closeModal(); }
+    </script>
+</body>
+</html>
