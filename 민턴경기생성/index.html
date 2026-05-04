@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배드민턴 경기 매니저</title>
+    <style>
+        :root {
+            --primary: #007bff; --success: #28a745; --fixed-bg: #e9ecef;
+            --unbalanced1: #ffeeba; --unbalanced2: #f8d7da;
+        }
+        body { font-family: 'Pretendard', sans-serif; background: #f0f2f5; padding: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        .stepper { display: flex; justify-content: space-between; margin-bottom: 30px; position: relative; }
+        .stepper::before { content: ""; position: absolute; top: 18px; left: 0; right: 0; height: 2px; background: #ddd; z-index: 1; }
+        .step { width: 35px; height: 35px; background: white; border: 2px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; font-weight: bold; }
+        .step.active { border-color: var(--primary); background: var(--primary); color: white; }
+
+        .content { display: none; }
+        .content.active { display: block; }
+
+        .tier-summary { margin-bottom: 15px; }
+        .tier-badge { padding: 6px 12px; border-radius: 8px; font-size: 0.9em; font-weight: bold; border: 1px solid #ddd; margin-bottom: 5px; display: block; }
+        .tier-high { background: #e3f2fd; color: #0d47a1; }
+        .tier-mid { background: #f1f8e9; color: #33691e; }
+        .tier-low { background: #fff3e0; color: #e65100; }
+
+        .match-row { display: flex; align-items: center; background: #fff; border: 1px solid #dee2e6; margin-bottom: 12px; padding: 12px; border-radius: 10px; gap: 10px; }
+        .game-info { display: flex; flex-direction: column; align-items: center; min-width: 50px; }
+        .lock-btn { cursor: pointer; font-size: 18px; border: none; background: none; }
+
+        .seat { flex: 1; padding: 14px 5px; text-align: center; border-radius: 8px; border: 1px solid #eee; font-weight: bold; position: relative; background: white; transition: 0.2s; min-height: 20px; }
+        .content#step3 .seat { cursor: grab; }
+        .seat.dragging { opacity: 0.3; }
+        .seat.fixed { background-color: var(--fixed-bg); border: 2px solid #666; }
+        .seat.fixed::before { content: "📌"; position: absolute; top: -8px; right: -5px; font-size: 12px; }
+        .vs { font-weight: bold; color: #adb5bd; width: 30px; text-align: center; }
+
+        .unbalanced1 { background-color: var(--unbalanced1) !important; border: 2px solid #ffc107 !important; }
+        .unbalanced2 { background-color: var(--unbalanced2) !important; border: 2px solid #dc3545 !important; }
+        .sameName { border: 2px solid #6610f2 !important; background-color: #e2d9f3 !important; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
+        textarea { width: 100%; height: 150px; padding: 15px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+        
+        #pCountDisplay { margin-top:10px; font-weight:bold; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee; font-size: 0.95em; word-break: break-all; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-next { background: var(--primary); color: white; }
+        .btn-prev { background: #6c757d; color: white; }
+        .btn-action { background: var(--success); color: white; width: 100%; margin-bottom: 15px; }
+        .btn-load { background: #6f42c1; color: white; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="stepper">
+        <div class="step active">1</div><div class="step">2</div><div class="step">3</div><div class="step">4</div>
+    </div>
+
+    <div class="content active" id="step1">
+        <h2>1단계: 명단 입력</h2>
+        <button class="btn btn-load" id="btnLoad" onclick="loadLastGame()">📂 최근 경기 불러오기</button>
+        <textarea id="attendanceList" placeholder="이명준&#10;구태곤(이명준 게스트)&#10;김철수&#10;최서연(신입)"></textarea>
+        <div id="pCountDisplay">인원: 0명 []</div>
+        <div class="btn-group"><button class="btn btn-next" onclick="goToStep(2)">다음 단계</button></div>
+    </div>
+
+    <div class="content" id="step2">
+        <h2>2단계: 실력 및 경기수 설정</h2>
+        <div id="tierTableArea"></div>
+        <div id="mathStatus" style="margin-top:10px; font-weight:bold;"></div>
+        <div class="btn-group">
+            <button class="btn btn-prev" onclick="goToStep(1)">이전</button>
+            <button class="btn btn-next" onclick="validateAndGoToStep3()">대진표 생성</button>
+        </div>
+    </div>
+
+    <div class="content" id="step3">
+        <h2>3단계: 대진표 최적화</h2>
+        <div id="tierSummary3" class="tier-summary"></div>
+        <button class="btn btn-action" onclick="reShuffleUnlocked()">🔒 고정 제외 자동 재배치</button>
+        <div id="seatContainer"></div>
+        <div class="btn-group">
+            <button class="btn btn-prev" onclick="goToStep(2)">이전</button>
+            <button class="btn btn-next" onclick="saveAndFinish()">✅ 완료 (저장)</button>
+        </div>
+    </div>
+
+    <div class="content" id="step4">
+        <h2>4단계: 최종 경기표 확인</h2>
+        <div id="tierSummary4" class="tier-summary"></div>
+        <div id="finalTableView" style="margin-bottom:20px;"></div>
+        <div class="btn-group">
+            <button class="btn btn-prev" onclick="goToStep(3)">✏️ 수정하기</button>
+            <button class="btn btn-next" onclick="copyResult()">📋 경기 복사</button>
+        </div>
+        <button class="btn btn-prev" onclick="location.reload()" style="width:100%; margin-top:10px; background:#343a40; color:white;">새로 시작</button>
+    </div>
+</div>
+
+<script>
+    let playersData = []; 
+    let memberInfo = {}; 
+    let dragSource = null;
+    let finalCopyText = ""; 
+    let lastConfigHash = ""; 
+
+    window.onload = () => {
+        if(localStorage.getItem('match_last_game')) {
+            document.getElementById('btnLoad').style.display = 'block';
+        } else {
+            document.getElementById('btnLoad').style.display = 'none';
+        }
+    };
+
+    document.getElementById('attendanceList').addEventListener('input', () => {
+        const names = parseInput();
+        document.getElementById('pCountDisplay').innerText = `인원: ${names.length}명 [${names.join(', ')}]`;
+    });
+
+    function cleanName(name) {
+        return name.replace(/\([^)]*\)/g, '').replace(/[A-Z]$/, '').trim();
+    }
+
+    function parseInput() {
+        const rawLines = document.getElementById('attendanceList').value
+            .replace(/\d{1,2}\./g, "") 
+            .split("\n")
+            .map(v => v.trim())
+            .filter(v => v !== "");
+
+        // 1차: 기본 정제된 이름별로 그룹화
+        const groups = {};
+        rawLines.forEach(line => {
+            const base = line.replace(/\([^)]*\)/g, '').trim(); // 순수 이름만 추출
+            if (!groups[base]) groups[base] = [];
+            groups[base].push(line);
+        });
+
+        const finalNames = [];
+        // 2차: 그룹 내 인원이 2명 이상이면 무조건 A, B, C 부여
+        rawLines.forEach(line => {
+            const base = line.replace(/\([^)]*\)/g, '').trim();
+            if (groups[base].length > 1) {
+                const currentIdx = groups[base].indexOf(line);
+                const suffix = String.fromCharCode(65 + currentIdx);
+                finalNames.push(`${line}${suffix}`);
+                // 한 번 처리한 항목은 인덱스 업데이트를 위해 식별자 변경
+                groups[base][currentIdx] = null; 
+            } else {
+                finalNames.push(line);
+            }
+        });
+        return finalNames;
+    }
+
+    function validateAndGoToStep3() {
+        const totalSlots = playersData.reduce((s, p) => s + p.matches, 0);
+        if (totalSlots % 4 !== 0) {
+            alert(`총 슬롯이 4의 배수가 아닙니다. (현재: ${totalSlots}개)\n${4 - (totalSlots % 4)}개의 슬롯이 더 필요하거나 줄여야 합니다.`);
+            return;
+        }
+        goToStep(3);
+    }
+
+    function goToStep(step) {
+        if (step === 2) {
+            const names = parseInput();
+            if (names.length < 4) return alert("4인 이상 필요합니다.");
+            const isSameList = playersData.length === names.length && playersData.every((p, i) => p.name === names[i]);
+            if (!isSameList) {
+                const totalPlayers = names.length;
+                const baseMatches = 2;
+                let extraNeeded = (4 - ((totalPlayers * baseMatches) % 4)) % 4;
+                playersData = names.map((n, idx) => {
+                    if(!memberInfo[n]) memberInfo[n] = { tier: 2 };
+                    let m = baseMatches;
+                    if (extraNeeded > 0) { m++; extraNeeded--; }
+                    return { name: n, matches: m };
+                });
+            }
+            renderStep2();
+        }
+        
+        if (step === 3) {
+            renderTierSummary('tierSummary3');
+            const currentHash = JSON.stringify(playersData) + JSON.stringify(memberInfo);
+            if (currentHash !== lastConfigHash) {
+                createInitialMatch();
+                lastConfigHash = currentHash;
+            }
+        }
+        
+        if (step === 4) {
+            renderTierSummary('tierSummary4');
+            generateFinalDisplay();
+        }
+
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.getElementById('step' + step).classList.add('active');
+        document.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i < step));
+    }
+
+    function renderStep2() {
+        let h = `<table><tr><th>이름</th><th>실력</th><th>경기수</th></tr>`;
+        playersData.forEach((p, i) => {
+            h += `<tr><td>${p.name}</td>
+                <td><select onchange="memberInfo['${p.name}'].tier=Number(this.value); checkMath();">
+                <option value="3" ${memberInfo[p.name].tier==3?'selected':''}>상급</option>
+                <option value="2" ${memberInfo[p.name].tier==2?'selected':''}>중급</option>
+                <option value="1" ${memberInfo[p.name].tier==1?'selected':''}>초급</option></select></td>
+                <td><input type="number" value="${p.matches}" min="1" onchange="updateMatches(${i}, this.value)" style="width:45px"></td></tr>`;
+        });
+        document.getElementById('tierTableArea').innerHTML = h + `</table>`;
+        checkMath();
+    }
+
+    function renderTierSummary(containerId) {
+        const container = document.getElementById(containerId);
+        const tiers = { 3: [], 2: [], 1: [] };
+        // 수준별 명단에서는 원본 이름(게스트 포함) 사용하되 동명이인 접미사만 제거하고 싶다면 아래 주석 해제
+        // 여기서는 요청하신 대로 (게스트) 표시가 남도록 p.name 그대로 사용
+        playersData.forEach(p => tiers[memberInfo[p.name].tier].push(p.name)); 
+        
+        container.innerHTML = `
+            <div class="tier-badge tier-high">🔵 상급: ${tiers[3].join(', ') || '없음'}</div>
+            <div class="tier-badge tier-mid">🟢 중급: ${tiers[2].join(', ') || '없음'}</div>
+            <div class="tier-badge tier-low">🟠 초급: ${tiers[1].join(', ') || '없음'}</div>
+        `;
+    }
+
+    function updateMatches(idx, val) {
+        playersData[idx].matches = Number(val);
+        checkMath();
+    }
+
+    function checkMath() {
+        const t = playersData.reduce((s, p) => s + p.matches, 0);
+        const a = document.getElementById('mathStatus');
+        a.innerText = `총 슬롯: ${t} (${t % 4 === 0 ? '✅ 가능' : '❌ 부족 - ' + (4 - (t % 4)) + '개 더 필요'})`;
+        a.style.color = t % 4 === 0 ? "green" : "red";
+    }
+
+    function createInitialMatch() {
+        let pool = [];
+        playersData.forEach(p => { for(let i=0; i<p.matches; i++) pool.push(p.name); });
+        let shuffledPool = [];
+        for(let attempt = 0; attempt < 100; attempt++) {
+            let temp = [...pool].sort(() => Math.random() - 0.5);
+            let ok = true;
+            for(let i=0; i<temp.length; i+=4) {
+                if(new Set(temp.slice(i, i+4)).size !== 4) { ok = false; break; }
+            }
+            if(ok) { shuffledPool = temp; break; }
+            if(attempt === 99) shuffledPool = temp;
+        }
+        renderMatchCards(shuffledPool);
+    }
+
+    function renderMatchCards(pool) {
+        const container = document.getElementById('seatContainer');
+        container.innerHTML = '';
+        for (let i = 0; i < pool.length; i += 4) {
+            const row = document.createElement('div');
+            row.className = 'match-row';
+            row.innerHTML = `<div class="game-info"><small>#${(i/4)+1}</small><button class="lock-btn" onclick="toggleGameLock(this)">🔓</button></div>`;
+            pool.slice(i, i+4).forEach((internalName, idx) => {
+                const seat = document.createElement('div');
+                seat.className = 'seat'; 
+                seat.dataset.internalName = internalName;
+                // 경기표(대진표)에서는 (게스트) 제거
+                seat.innerText = internalName.replace(/\([^)]*\)/g, '').trim(); 
+                seat.draggable = true;
+                seat.ondragstart = (e) => { dragSource = seat; seat.classList.add('dragging'); };
+                seat.ondragover = (e) => e.preventDefault();
+                seat.ondrop = (e) => {
+                    e.preventDefault();
+                    if (dragSource && dragSource !== seat) {
+                        const tText = seat.innerText; 
+                        const tInternal = seat.dataset.internalName;
+                        const tFix = seat.classList.contains('fixed');
+                        
+                        seat.innerText = dragSource.innerText; 
+                        seat.dataset.internalName = dragSource.dataset.internalName;
+                        dragSource.classList.contains('fixed') ? seat.classList.add('fixed') : seat.classList.remove('fixed');
+                        
+                        dragSource.innerText = tText;
+                        dragSource.dataset.internalName = tInternal;
+                        tFix ? dragSource.classList.add('fixed') : dragSource.classList.remove('fixed');
+                        balanceEvaluation();
+                    }
+                };
+                seat.ondragend = () => seat.classList.remove('dragging');
+                seat.onclick = () => { seat.classList.toggle('fixed'); balanceEvaluation(); };
+                row.appendChild(seat);
+                if(idx === 1) row.appendChild(document.createRange().createContextualFragment('<div class="vs">VS</div>'));
+            });
+            container.appendChild(row);
+        }
+        balanceEvaluation();
+    }
+
+    function toggleGameLock(btn) {
+        const row = btn.closest('.match-row');
+        const isL = btn.innerText === '🔒';
+        btn.innerText = isL ? '🔓' : '🔒';
+        row.querySelectorAll('.seat').forEach(s => !isL ? s.classList.add('fixed') : s.classList.remove('fixed'));
+    }
+
+    function reShuffleUnlocked() {
+        const seats = Array.from(document.querySelectorAll('.seat'));
+        const unIdx = seats.map((s, i) => s.classList.contains('fixed') ? -1 : i).filter(i => i !== -1);
+        const unInternalNames = unIdx.map(i => seats[i].dataset.internalName);
+        if(unInternalNames.length === 0) return;
+        for (let a = 0; a < 100; a++) {
+            let shuf = [...unInternalNames].sort(() => Math.random() - 0.5);
+            let temp = seats.map(s => s.dataset.internalName);
+            unIdx.forEach((idx, i) => temp[idx] = shuf[i]);
+            let ok = true;
+            for (let j = 0; j < temp.length; j += 4) if (new Set(temp.slice(j, j+4)).size !== 4) { ok = false; break; }
+            if (ok) { 
+                unIdx.forEach((idx, i) => {
+                    seats[idx].dataset.internalName = shuf[i];
+                    seats[idx].innerText = shuf[i].replace(/\([^)]*\)/g, '').trim();
+                }); 
+                break; 
+            }
+        }
+        balanceEvaluation();
+    }
+
+    function balanceEvaluation() {
+        document.querySelectorAll('.match-row').forEach(row => {
+            const ss = row.querySelectorAll('.seat');
+            const p = Array.from(ss).map(s => s.dataset.internalName);
+            ss.forEach(s => s.classList.remove('unbalanced1', 'unbalanced2', 'sameName'));
+            if (new Set(p).size !== 4) return ss.forEach(s => s.classList.add('sameName'));
+            const l = (memberInfo[p[0]]?.tier || 2) + (memberInfo[p[1]]?.tier || 2);
+            const r = (memberInfo[p[2]]?.tier || 2) + (memberInfo[p[3]]?.tier || 2);
+            const d = Math.abs(l - r);
+            if (d > 0) {
+                const strongerSide = l > r ? [0, 1] : [2, 3];
+                strongerSide.forEach(i => ss[i].classList.add(d === 1 ? 'unbalanced1' : 'unbalanced2'));
+            }
+        });
+    }
+
+    function saveAndFinish() {
+        const gameData = {
+            players: playersData,
+            info: memberInfo,
+            pool: Array.from(document.querySelectorAll('#step3 .seat')).map(s => s.dataset.internalName),
+            rawInput: document.getElementById('attendanceList').value
+        };
+        localStorage.setItem('match_last_game', JSON.stringify(gameData));
+        goToStep(4);
+    }
+
+    function loadLastGame() {
+        const data = JSON.parse(localStorage.getItem('match_last_game'));
+        if(!data) return;
+        document.getElementById('attendanceList').value = data.rawInput;
+        playersData = data.players;
+        memberInfo = data.info;
+        lastConfigHash = JSON.stringify(playersData);
+        document.getElementById('pCountDisplay').innerText = `인원: ${playersData.length}명 [${playersData.map(p=>p.name).join(', ')}]`;
+        
+        // 4단계로 바로 이동하기 위한 준비
+        renderTierSummary('tierSummary4');
+        
+        // 대진표 복구를 위해 step3 요소 임시 렌더링 후 step4 데이터 생성
+        renderMatchCards(data.pool);
+        generateFinalDisplay();
+        
+        // 4단계로 강제 이동
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.getElementById('step4').classList.add('active');
+        document.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i < 4));
+    }
+
+    function generateFinalDisplay() {
+        const tiers = { 3: [], 2: [], 1: [] };
+        // 수준별 명단: (게스트) 유지
+        playersData.forEach(p => tiers[memberInfo[p.name].tier].push(p.name));
+        
+        let txt = `🏸 경기 대진표\n\n`;
+        txt += `[실력별 명단]\n`;
+        txt += `🔵 상급: ${tiers[3].join(', ') || '없음'}\n`;
+        txt += `🟢 중급: ${tiers[2].join(', ') || '없음'}\n`;
+        txt += `🟠 초급: ${tiers[1].join(', ') || '없음'}\n`;
+        txt += `--------------------------\n\n`;
+
+        const viewContainer = document.getElementById('finalTableView');
+        viewContainer.innerHTML = '';
+        document.querySelectorAll('#step3 .match-row').forEach((row, i) => {
+            const sNames = Array.from(row.querySelectorAll('.seat')).map(el => el.innerText);
+            txt += `${i+1}G: ${sNames[0]} ${sNames[1]} VS ${sNames[2]} ${sNames[3]}\n`;
+            const clone = row.cloneNode(true);
+            clone.querySelector('.game-info').innerHTML = `<small>#${i+1}</small>`;
+            clone.querySelectorAll('.seat').forEach(seat => { seat.draggable = false; seat.onclick = null; });
+            viewContainer.appendChild(clone);
+        });
+        finalCopyText = txt;
+    }
+
+    function copyResult() {
+        navigator.clipboard.writeText(finalCopyText).then(() => {
+            alert("수준별 명단과 대진표가 클립보드에 복사되었습니다!");
+        });
+    }
+</script>
+</body>
+</html>
